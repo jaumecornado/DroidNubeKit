@@ -8,11 +8,13 @@ public class DroidNubeKitConstants {
     public final static String API_ENDPOINT = "https://api.apple-cloudkit.com";
     /** The current protocol of CloudKit API */
     public final static String PROTOCOL = "1";
+    /** The extra key to pass on webview intent */
+    public final static String WEBVIEW_REDIRECT_URL_EXTRA = "WEBVIEW_REDIRECT_URL_EXTRA";
 
     /**
      * The different environment types available on CloudKit
      */
-    enum kEnvironmentType {
+    public enum kEnvironmentType {
         kDevelopmentEnvironment,
         kProductionEnvironment;
 
@@ -23,7 +25,7 @@ public class DroidNubeKitConstants {
         }
     }
 
-    enum kDatabaseType {
+    public enum kDatabaseType {
         kPublicDatabase,
         kPrivateDatabase;
 
