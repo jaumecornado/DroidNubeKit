@@ -1,8 +1,9 @@
-package moddity.net.droidnubekit.interfaces;
+package net.moddity.droidnubekit.interfaces;
+
+import net.moddity.droidnubekit.responsemodels.Zone;
 
 import java.util.List;
 
-import moddity.net.droidnubekit.responsemodels.Zone;
 import retrofit.http.GET;
 import retrofit.http.Path;
 

@@ -1,7 +1,8 @@
-package moddity.net.droidnubekit;
+package net.moddity.droidnubekit;
 
-import moddity.net.droidnubekit.DroidNubeKitConstants.kEnvironmentType;
-import moddity.net.droidnubekit.interfaces.CloudKitService;
+
+import net.moddity.droidnubekit.interfaces.CloudKitService;
+
 import retrofit.RestAdapter;
 
 /**
@@ -19,7 +20,7 @@ public class DroidNubeKit {
     private String apiToken;
 
     /** If it's production or development */
-    private kEnvironmentType environmentType;
+    private DroidNubeKitConstants.kEnvironmentType environmentType;
 
     private String appContainerIdentifier;
 
@@ -43,7 +44,7 @@ public class DroidNubeKit {
     //----------------------
     // Public methods
     //----------------------
-    public static void initNube(String apiToken, String appContainerIdentifier, kEnvironmentType environmentType) {
+    public static void initNube(String apiToken, String appContainerIdentifier, DroidNubeKitConstants.kEnvironmentType environmentType) {
         DroidNubeKit.getInstance().apiToken = apiToken;
         DroidNubeKit.getInstance().environmentType = environmentType;
         DroidNubeKit.getInstance().appContainerIdentifier = appContainerIdentifier;

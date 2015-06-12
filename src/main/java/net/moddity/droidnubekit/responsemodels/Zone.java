@@ -1,4 +1,4 @@
-package moddity.net.droidnubekit.responsemodels;
+package net.moddity.droidnubekit.responsemodels;
 
 /**
  * Created by jaume on 12/6/15.

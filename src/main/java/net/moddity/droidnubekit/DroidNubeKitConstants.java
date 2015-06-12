@@ -1,4 +1,4 @@
-package moddity.net.droidnubekit;
+package net.moddity.droidnubekit;
 
 /**
  * Created by jaume on 11/6/15.
