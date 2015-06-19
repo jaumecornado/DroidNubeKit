@@ -6,9 +6,11 @@ package net.moddity.droidnubekit.errors;
 public class DNKException extends Exception {
 
     private int errorCode;
+    private Throwable exception;
 
-    public DNKException(int errorCode) {
+    public DNKException(int errorCode, Throwable exception) {
         this.errorCode = errorCode;
+        this.exception = exception;
     }
 
     public int getErrorCode() {
@@ -17,5 +19,13 @@ public class DNKException extends Exception {
 
     public void setErrorCode(int errorCode) {
         this.errorCode = errorCode;
+    }
+
+    public Throwable getException() {
+        return exception;
+    }
+
+    public void setException(Throwable exception) {
+        this.exception = exception;
     }
 }

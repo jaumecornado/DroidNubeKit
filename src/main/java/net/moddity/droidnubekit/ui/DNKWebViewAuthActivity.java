@@ -52,7 +52,6 @@ public class DNKWebViewAuthActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 if(url.startsWith(urlRedirectPattern)) {
-                    Log.d("CK", "Redirect found");
                     Uri redirectUri = Uri.parse(url);
                     redirectHandler.onRedirectFound(redirectUri);
                     finish();

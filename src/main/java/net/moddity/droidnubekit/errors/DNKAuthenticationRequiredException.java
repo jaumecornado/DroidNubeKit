@@ -9,8 +9,8 @@ public class DNKAuthenticationRequiredException extends DNKException {
 
     private DNKUnauthorizedResponse unauthorizedResponse;
 
-    public DNKAuthenticationRequiredException(int errorCode, DNKUnauthorizedResponse unauthorizedResponse) {
-        super(errorCode);
+    public DNKAuthenticationRequiredException(int errorCode, Throwable exception, DNKUnauthorizedResponse unauthorizedResponse) {
+        super(errorCode, exception);
         this.unauthorizedResponse = unauthorizedResponse;
     }
 

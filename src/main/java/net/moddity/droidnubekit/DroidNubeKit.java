@@ -9,6 +9,7 @@ import net.moddity.droidnubekit.errors.DNKErrorHandler;
 import net.moddity.droidnubekit.errors.DNKException;
 import net.moddity.droidnubekit.interfaces.CloudKitService;
 import net.moddity.droidnubekit.interfaces.CloudKitWebViewRedirectHandler;
+import net.moddity.droidnubekit.interfaces.DNKCloudKitAuth;
 import net.moddity.droidnubekit.requests.DNKCallback;
 import net.moddity.droidnubekit.requests.DNKRecordQueryRequest;
 import net.moddity.droidnubekit.responsemodels.DNKRecordsResponse;
@@ -18,6 +19,7 @@ import net.moddity.droidnubekit.ui.DNKWebViewAuthActivity;
 import java.util.List;
 
 import retrofit.Callback;
+import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
@@ -46,13 +48,27 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
 
     private Context context;
 
+    /** External redirect handler to control authentication */
+    private DNKCloudKitAuth cloudKitAuthHandler;
+
     /**
      * Initializes the CloudKit Service
      */
     private DroidNubeKit() {
+
+        RequestInterceptor requestInterceptor = new RequestInterceptor() {
+            @Override
+            public void intercept(RequestInterceptor.RequestFacade request) {
+                if(ckSession != null)
+                    request.addQueryParam("ckSession", ckSession);
+
+            }
+        };
+
         RestAdapter restAdapter = new RestAdapter.Builder()
                 .setEndpoint(DroidNubeKitConstants.API_ENDPOINT)
                 .setLogLevel(RestAdapter.LogLevel.FULL)
+                .setRequestInterceptor(requestInterceptor)
                 .setErrorHandler(new DNKErrorHandler())
                 .build();
 
@@ -124,7 +140,7 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
 
                     @Override
                     public void failure(RetrofitError error) {
-                        callback.failure((DNKException)error.getCause());
+                        callback.failure((DNKException) error.getCause());
                     }
                 }
         );
@@ -149,11 +165,24 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
         DroidNubeKit.getInstance().getContext().startActivity(intent);
     }
 
+    /**
+     * Defines an Auth Handler interface to control the state of CloudKit authentication
+     * @param authHandler
+     */
+    public static void setCloudKitAuthHandler(DNKCloudKitAuth authHandler) {
+        DroidNubeKit.getInstance().cloudKitAuthHandler = authHandler;
+    }
+
     @Override
     public void onRedirectFound(Uri redirectUri) {
-        if(DroidNubeKitConstants.WEBVIEW_REDIRECT_LOGIN_ENDPOINT.equals(redirectUri.getHost()))
-            DroidNubeKit.getInstance().ckSession = redirectUri.getQueryParameter("ckSession");
+        if(DroidNubeKitConstants.WEBVIEW_REDIRECT_LOGIN_ENDPOINT.equals(redirectUri.getHost())) {
+            String ckSession = redirectUri.getQueryParameter("ckSession");
+            if(ckSession != null) {
+                DroidNubeKit.getInstance().ckSession = ckSession;
 
-        System.out.println(redirectUri.getHost()+" - "+redirectUri.getQuery()+" - "+redirectUri.getEncodedPath()+" - "+redirectUri.getPath()+" - "+redirectUri.getLastPathSegment());
+                if(DroidNubeKit.getInstance().cloudKitAuthHandler != null)
+                    DroidNubeKit.getInstance().cloudKitAuthHandler.onAuthSucceed();
+            }
+        }
     }
 }
