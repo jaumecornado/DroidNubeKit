@@ -3,19 +3,21 @@ package net.moddity.droidnubekit;
 
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
+import android.net.Uri;
 
 import net.moddity.droidnubekit.errors.DNKErrorHandler;
+import net.moddity.droidnubekit.errors.DNKException;
 import net.moddity.droidnubekit.interfaces.CloudKitService;
+import net.moddity.droidnubekit.interfaces.CloudKitWebViewRedirectHandler;
 import net.moddity.droidnubekit.requests.DNKCallback;
 import net.moddity.droidnubekit.requests.DNKRecordQueryRequest;
-import net.moddity.droidnubekit.responsemodels.DNKRecord;
 import net.moddity.droidnubekit.responsemodels.DNKRecordsResponse;
 import net.moddity.droidnubekit.responsemodels.DNKZone;
 import net.moddity.droidnubekit.ui.DNKWebViewAuthActivity;
 
 import java.util.List;
 
+import retrofit.Callback;
 import retrofit.RestAdapter;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
@@ -23,7 +25,7 @@ import retrofit.client.Response;
 /**
  * Created by Jaume Cornadó on 11/6/15.
  */
-public class DroidNubeKit {
+public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
 
     /** The singleton instance */
     private static DroidNubeKit instance;
@@ -33,6 +35,9 @@ public class DroidNubeKit {
 
     /** The API Token */
     private String apiToken;
+
+    /** Session on auth */
+    private String ckSession;
 
     /** If it's production or development */
     private DroidNubeKitConstants.kEnvironmentType environmentType;
@@ -54,7 +59,11 @@ public class DroidNubeKit {
         cloudKitService = restAdapter.create(CloudKitService.class);
     }
 
-    private static DroidNubeKit getInstance() {
+    /**
+     * Singleton instance
+     * @return the instance
+     */
+    public static DroidNubeKit getInstance() {
         if(instance == null)
             instance = new DroidNubeKit();
         return instance;
@@ -78,7 +87,7 @@ public class DroidNubeKit {
         DroidNubeKit.getInstance().context = context;
     }
 
-    public static void fetchRecordsByQuery(DNKRecordQueryRequest queryRequest, DroidNubeKitConstants.kDatabaseType databaseType) {
+    public static void fetchRecordsByQuery(DNKRecordQueryRequest queryRequest, DroidNubeKitConstants.kDatabaseType databaseType, final DNKCallback<DNKRecordsResponse> callback) {
         DroidNubeKit.getInstance().cloudKitService.queryRecords(
                 DroidNubeKitConstants.PROTOCOL,
                 DroidNubeKit.getInstance().appContainerIdentifier,
@@ -86,38 +95,36 @@ public class DroidNubeKit {
                 databaseType.toString(),
                 queryRequest,
                 DroidNubeKit.getInstance().apiToken,
-                new DNKCallback<DNKRecordsResponse>() {
+                new Callback<DNKRecordsResponse>() {
                     @Override
                     public void success(DNKRecordsResponse recordsResponse, Response response) {
-                        super.success(recordsResponse, response);
+                        callback.success(recordsResponse);
                     }
 
                     @Override
                     public void failure(RetrofitError error) {
-                        super.failure(error);
+                        callback.failure((DNKException)error.getCause());
                     }
                 }
         );
     }
 
-    public static void getZones(DroidNubeKitConstants.kDatabaseType databaseType) {
+    public static void getZones(DroidNubeKitConstants.kDatabaseType databaseType, final DNKCallback<List<DNKZone>> callback) {
         DroidNubeKit.getInstance().cloudKitService.getZones(
                 DroidNubeKitConstants.PROTOCOL,
                 DroidNubeKit.getInstance().appContainerIdentifier,
                 DroidNubeKit.getInstance().environmentType.toString(),
                 databaseType.toString(),
                 DroidNubeKit.getInstance().apiToken,
-                new DNKCallback<List<DNKZone>>() {
+                new Callback<List<DNKZone>>() {
                     @Override
-                    public void success(List<DNKZone> zones, Response response) {
-                        super.success(zones, response);
-                        Log.d("CK", zones.toString());
+                    public void success(List<DNKZone> dnkZones, Response response) {
+                        callback.success(dnkZones);
                     }
 
                     @Override
                     public void failure(RetrofitError error) {
-                        super.failure(error);
-                        Log.d("CK", "Error: "+error.getLocalizedMessage());
+                        callback.failure((DNKException)error.getCause());
                     }
                 }
         );
@@ -138,6 +145,15 @@ public class DroidNubeKit {
     public static void showAuthDialog(String redirectURL) {
         Intent intent = new Intent(DroidNubeKit.getInstance().getContext(), DNKWebViewAuthActivity.class);
         intent.putExtra(DroidNubeKitConstants.WEBVIEW_REDIRECT_URL_EXTRA, redirectURL);
+        intent.putExtra(DroidNubeKitConstants.WEBVIEW_REDIRECT_PATTERN_EXTRA, DroidNubeKitConstants.WEBVIEW_REDIRECT_URL_PREFIX+DroidNubeKit.getInstance().appContainerIdentifier.toLowerCase());
         DroidNubeKit.getInstance().getContext().startActivity(intent);
+    }
+
+    @Override
+    public void onRedirectFound(Uri redirectUri) {
+        if(DroidNubeKitConstants.WEBVIEW_REDIRECT_LOGIN_ENDPOINT.equals(redirectUri.getHost()))
+            DroidNubeKit.getInstance().ckSession = redirectUri.getQueryParameter("ckSession");
+
+        System.out.println(redirectUri.getHost()+" - "+redirectUri.getQuery()+" - "+redirectUri.getEncodedPath()+" - "+redirectUri.getPath()+" - "+redirectUri.getLastPathSegment());
     }
 }

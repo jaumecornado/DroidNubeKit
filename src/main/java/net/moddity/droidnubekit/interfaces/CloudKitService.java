@@ -20,7 +20,7 @@ import retrofit.http.Query;
  */
 public interface CloudKitService {
     @GET("/database/{version}/{container}/{environment}/{database}/zones/list")
-    void getZones(@Path("version") String version, @Path("container") String container, @Path("environment") String environment, @Path("database") String database, @Query("ckAPIToken") String ckAPIToken, DNKCallback<List<DNKZone>> callback);
+    void getZones(@Path("version") String version, @Path("container") String container, @Path("environment") String environment, @Path("database") String database, @Query("ckAPIToken") String ckAPIToken, Callback<List<DNKZone>> callback);
     @POST("/database/{version}/{container}/{environment}/{database}/records/query")
-    void queryRecords(@Path("version") String version, @Path("container") String container, @Path("environment") String environment, @Path("database") String database, @Body DNKRecordQueryRequest recordQueryRequest, @Query("ckAPIToken") String ckAPIToken, DNKCallback<DNKRecordsResponse> callback);
+    void queryRecords(@Path("version") String version, @Path("container") String container, @Path("environment") String environment, @Path("database") String database, @Body DNKRecordQueryRequest recordQueryRequest, @Query("ckAPIToken") String ckAPIToken, Callback<DNKRecordsResponse> callback);
 }
