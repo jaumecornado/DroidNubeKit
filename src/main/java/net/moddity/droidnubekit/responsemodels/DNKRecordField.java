@@ -6,14 +6,19 @@ import net.moddity.droidnubekit.utils.DNKFieldTypes;
  * Created by jaume on 13/7/15.
  */
 public class DNKRecordField<T> {
-    private Object value;
+    private T value;
     private DNKFieldTypes type;
 
-    public Object getValue() {
+    public DNKRecordField(DNKFieldTypes type, T value) {
+        this.type = type;
+        this.value = value;
+    }
+
+    public T getValue() {
         return value;
     }
 
-    public void setValue(Object value) {
+    public void setValue(T value) {
         this.value = value;
     }
 

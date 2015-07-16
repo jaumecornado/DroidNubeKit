@@ -7,6 +7,7 @@ public enum DNKFieldTypes {
     INT64("INT64"),
     STRING("STRING"),
     TIMESTAMP("TIMESTAMP"),
+    REFERENCE_LIST("REFERENCE_LIST"),
     UNKNOWN("UNKNOWN");
 
 

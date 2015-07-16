@@ -2,6 +2,7 @@ package net.moddity.droidnubekit.responsemodels;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -14,7 +15,7 @@ public class DNKRecord {
     private String recordChangeTag;
 
     @SerializedName("fields")
-    private Map<String, DNKRecordField> fields;
+    private Map<String, DNKRecordField> fields = new HashMap<>();
 
     private Boolean deleted;
 
