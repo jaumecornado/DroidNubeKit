@@ -39,14 +39,22 @@ public class DNKRecordLookupRequest {
     }
 
     public static DNKRecordLookupRequest createSingleRecordRequest(String recordName) {
-        DNKLookupRecord lookupRecord = new DNKLookupRecord();
-        lookupRecord.setRecordName(recordName);
+        List<String> recordNames = new ArrayList<>();
+        recordNames.add(recordName);
+        return createMultipleRecordRequest(recordNames);
+    }
 
-        DNKRecordLookupRequest request = new DNKRecordLookupRequest();
+    public static DNKRecordLookupRequest createMultipleRecordRequest(List<String> recordNames) {
 
         List<DNKLookupRecord> records = new ArrayList<>();
-        records.add(lookupRecord);
 
+        for(String recordName : recordNames) {
+            DNKLookupRecord lookupRecord = new DNKLookupRecord();
+            lookupRecord.setRecordName(recordName);
+            records.add(lookupRecord);
+        }
+
+        DNKRecordLookupRequest request = new DNKRecordLookupRequest();
         request.setRecords(records);
 
         return request;

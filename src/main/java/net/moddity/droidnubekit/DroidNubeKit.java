@@ -10,12 +10,15 @@ import android.preference.PreferenceManager;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import net.moddity.droidnubekit.annotations.RecordType;
 import net.moddity.droidnubekit.errors.DNKErrorHandler;
 import net.moddity.droidnubekit.errors.DNKException;
 import net.moddity.droidnubekit.interfaces.CloudKitService;
 import net.moddity.droidnubekit.interfaces.CloudKitWebViewRedirectHandler;
 import net.moddity.droidnubekit.interfaces.DNKCloudKitAuth;
+import net.moddity.droidnubekit.objects.DNKObject;
 import net.moddity.droidnubekit.requests.DNKCallback;
+import net.moddity.droidnubekit.requests.DNKObjectProcessingCallback;
 import net.moddity.droidnubekit.requests.DNKRecordLookupRequest;
 import net.moddity.droidnubekit.requests.DNKRecordModifyRequest;
 import net.moddity.droidnubekit.requests.DNKRecordQueryRequest;
@@ -29,9 +32,16 @@ import net.moddity.droidnubekit.ui.DNKWebViewAuthActivity;
 import net.moddity.droidnubekit.utils.DNKOperationType;
 import net.moddity.droidnubekit.utils.DNKRecordFieldDeserializer;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import dalvik.system.DexFile;
 import retrofit.Callback;
 
 import retrofit.RequestInterceptor;
@@ -70,11 +80,13 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
 
     private DNKUser currentUser;
 
+    public Set<Class<?>> modelClasses = new HashSet<>();
+
+
     /**
      * Initializes the CloudKit Service
      */
     private DroidNubeKit() {
-
 
         GsonBuilder gsonBuilder = new GsonBuilder();
         gsonBuilder.registerTypeAdapter(new TypeToken<Map<String, DNKRecordField>>() {}.getType(), new DNKRecordFieldDeserializer());
@@ -126,6 +138,13 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
         DroidNubeKit.getInstance().appContainerIdentifier = appContainerIdentifier;
         DroidNubeKit.getInstance().context = context;
         DroidNubeKit.getInstance().checkForSession();
+
+        try {
+            DroidNubeKit.getInstance().modelClasses = DroidNubeKit.getInstance().getClasspathClasses();
+        } catch (Exception e) {
+            //Todo throw inizialization exception
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -134,7 +153,7 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
      * @param environmentType development / production environment
      * @param callback callback to process the result
      */
-    public static void fetchRecordsByQuery(DNKRecordQueryRequest queryRequest, DroidNubeKitConstants.kDatabaseType environmentType, final DNKCallback<DNKRecordsResponse> callback) {
+    public static <T> void fetchRecordsByQuery(DNKRecordQueryRequest queryRequest, DroidNubeKitConstants.kDatabaseType environmentType, final DNKCallback<List<T>> callback) {
         DroidNubeKit.getInstance().cloudKitService.queryRecords(
                 DroidNubeKitConstants.PROTOCOL,
                 DroidNubeKit.getInstance().appContainerIdentifier,
@@ -142,23 +161,61 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
                 environmentType.toString(),
                 queryRequest,
                 DroidNubeKit.getInstance().apiToken,
-                new Callback<DNKRecordsResponse>() {
+                new DNKObjectProcessingCallback<DNKRecordsResponse, T>() {
                     @Override
-                    public void success(DNKRecordsResponse recordsResponse, Response response) {
-                        callback.success(recordsResponse);
+                    public void success(DNKRecordsResponse dnkRecordsResponse, Response response) {
+                        super.success(dnkRecordsResponse, response);
+                        callback.success(getResponseObjects());
                     }
 
                     @Override
                     public void failure(RetrofitError error) {
+                        super.failure(error);
                         callback.failure(error.getCause());
                     }
                 }
         );
     }
 
-    public static void modifyRecord(DNKRecord record, DNKOperationType operationType, DroidNubeKitConstants.kDatabaseType environmentType, final DNKCallback<DNKRecordsResponse> callback) {
+    public static <T> void modifyRecord(T object, DNKOperationType operationType,  DroidNubeKitConstants.kDatabaseType environmentType, final DNKCallback<List<T>> callback) {
+        if(!(object instanceof DNKObject)) {
+            callback.failure(new Exception("Object it's not instance of DNKRecord: " + object.toString()));
+            return;
+        }
 
-        DNKRecordModifyRequest request = DNKRecordModifyRequest.createRequest(record, operationType);
+        List<T> objects = new ArrayList<>();
+        objects.add(object);
+
+        modifyRecord(objects, operationType, environmentType, callback);
+    }
+
+    /**
+     * Modify a current record
+     * @param objects The record to modify
+     * @param operationType Operation type. More info at: https://developer.apple.com/library/prerelease/ios/documentation/DataManagement/Conceptual/CloutKitWebServicesReference
+     * @param environmentType public / private
+     * @param callback callback to process the result
+     */
+    public static <T> void modifyRecord(List<T> objects, DNKOperationType operationType, DroidNubeKitConstants.kDatabaseType environmentType, final DNKCallback<List<T>> callback) {
+
+        Map<String, DNKRecord> records = new HashMap<>();
+
+        for(T object : objects) {
+            if (!(object instanceof DNKObject)) {
+                callback.failure(new Exception("Object it's not instance of DNKRecord: " + object.toString()));
+                return;
+            }
+
+            DNKObject recordObject = (DNKObject)object;
+
+            records.put(recordObject.toRecord().getRecordName(), recordObject.toRecord());
+
+            for(DNKRecord descendingRecords : recordObject.getDescendingRecords()) {
+                records.put(descendingRecords.getRecordName(), descendingRecords);
+            }
+        }
+
+        DNKRecordModifyRequest request = DNKRecordModifyRequest.createRequest(new ArrayList<>(records.values()), operationType);
 
         DroidNubeKit.getInstance().cloudKitService.modifyRecords(
                 DroidNubeKitConstants.PROTOCOL,
@@ -167,14 +224,16 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
                 environmentType.toString(),
                 request,
                 DroidNubeKit.getInstance().apiToken,
-                new Callback<DNKRecordsResponse>() {
+                new DNKObjectProcessingCallback<DNKRecordsResponse, T>() {
                     @Override
                     public void success(DNKRecordsResponse dnkRecordsResponse, Response response) {
-                        callback.success(dnkRecordsResponse);
+                        super.success(dnkRecordsResponse, response);
+                        callback.success(getResponseObjects());
                     }
 
                     @Override
                     public void failure(RetrofitError error) {
+                        super.failure(error);
                         callback.failure(error.getCause());
                     }
                 }
@@ -195,6 +254,68 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
 
                     @Override
                     public void failure(RetrofitError error) {
+                        callback.failure(error.getCause());
+                    }
+                }
+        );
+    }
+
+    public static <T> void getObjects(List<T> objects, DroidNubeKitConstants.kDatabaseType databaseType, final DNKCallback<List<T>> callback) {
+
+        if(objects == null || objects.size() == 0)
+            return;
+
+        List<DNKRecord> records = new ArrayList<>();
+        for(Object o : objects) {
+            if (o instanceof DNKObject) {
+                DNKObject dnkObject = (DNKObject)o;
+                records.add(dnkObject.toRecord());
+            }
+        }
+
+        getRecords(records, databaseType, callback);
+    }
+
+    /**
+     * Fetch multiple records from record objects
+     * @param records
+     * @param databaseType
+     * @param callback
+     */
+    public static <T> void getRecords(List<DNKRecord> records, DroidNubeKitConstants.kDatabaseType databaseType, final DNKCallback<List<T>> callback) {
+        List<String> recordNames = new ArrayList<>();
+        for(DNKRecord record : records) {
+            recordNames.add(record.getRecordName());
+        }
+        getRecordByName(recordNames, databaseType, callback);
+    }
+
+    /**
+     * Fetch multiple record by record name
+     * @param recordNames
+     * @param databaseType
+     * @param callback
+     */
+    public static <T> void getRecordByName(List<String> recordNames, DroidNubeKitConstants.kDatabaseType databaseType, final DNKCallback<List<T>> callback) {
+        DNKRecordLookupRequest request = DNKRecordLookupRequest.createMultipleRecordRequest(recordNames);
+
+        DroidNubeKit.getInstance().cloudKitService.lookupRecords(
+                DroidNubeKitConstants.PROTOCOL,
+                DroidNubeKit.getInstance().appContainerIdentifier,
+                DroidNubeKit.getInstance().environmentType.toString(),
+                databaseType.toString(),
+                request,
+                DroidNubeKit.getInstance().apiToken,
+                new DNKObjectProcessingCallback<DNKRecordsResponse, T>() {
+                    @Override
+                    public void success(DNKRecordsResponse dnkRecordsResponse, Response response) {
+                        super.success(dnkRecordsResponse, response);
+                        callback.success(getResponseObjects());
+                    }
+
+                    @Override
+                    public void failure(RetrofitError error) {
+                        super.failure(error);
                         callback.failure(error.getCause());
                     }
                 }
@@ -316,7 +437,7 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
         getCurrentUser(new DNKCallback<DNKUser>() {
             @Override
             public void success(DNKUser dnkUser) {
-                if(DroidNubeKit.getInstance().cloudKitAuthHandler != null)
+                if (DroidNubeKit.getInstance().cloudKitAuthHandler != null)
                     DroidNubeKit.getInstance().cloudKitAuthHandler.onAuthSucceed();
                 currentUser = dnkUser;
             }
@@ -326,5 +447,25 @@ public class DroidNubeKit implements CloudKitWebViewRedirectHandler {
 
             }
         });
+    }
+
+    //http://bravenewgeek.com/implementing-spring-like-classpath-scanning-in-android/
+    private Set<Class<?>> getClasspathClasses() throws IOException, ClassNotFoundException {
+        Set<Class<?>> classes = new HashSet<Class<?>>();
+        DexFile dex = new DexFile(getContext().getApplicationInfo().sourceDir);
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        Enumeration<String> entries = dex.entries();
+        while (entries.hasMoreElements()) {
+            String entry = entries.nextElement();
+            if (entry.toLowerCase().startsWith(getContext().getPackageName().toLowerCase())) {
+
+                Class<?> clazz = classLoader.loadClass(entry);
+                if(clazz.isAnnotationPresent(RecordType.class)) {
+                    modelClasses.add(clazz);
+                }
+                classes.add(clazz);
+            }
+        }
+        return classes;
     }
 }

@@ -2,10 +2,12 @@ package net.moddity.droidnubekit.responsemodels;
 
 import net.moddity.droidnubekit.utils.DNKFieldTypes;
 
+import java.io.Serializable;
+
 /**
  * Created by jaume on 13/7/15.
  */
-public class DNKRecordField<T> {
+public class DNKRecordField<T> implements Serializable {
     private T value;
     private DNKFieldTypes type;
 

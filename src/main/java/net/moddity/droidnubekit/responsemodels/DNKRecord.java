@@ -2,13 +2,14 @@ package net.moddity.droidnubekit.responsemodels;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Created by jaume on 12/6/15.
  */
-public class DNKRecord {
+public class DNKRecord implements Serializable {
     
     private String recordName;
     private String recordType;

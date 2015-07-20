@@ -1,5 +1,6 @@
 package net.moddity.droidnubekit.requests;
 
+import net.moddity.droidnubekit.objects.DNKObject;
 import net.moddity.droidnubekit.responsemodels.DNKRecord;
 import net.moddity.droidnubekit.responsemodels.DNKZone;
 import net.moddity.droidnubekit.utils.DNKOperationType;
@@ -49,11 +50,12 @@ public class DNKRecordModifyRequest {
     }
 
 
-    public static DNKRecordModifyRequest createRequest(DNKRecord record, DNKOperationType operationType) {
+    public static DNKRecordModifyRequest createRequest(DNKObject record, DNKOperationType operationType) {
         List<DNKRecord> records = new ArrayList<>();
-        records.add(record);
+        records.add(record.toRecord());
         return createRequest(records, operationType);
     }
+
 
     public static DNKRecordModifyRequest createRequest(List<DNKRecord> records, DNKOperationType operationType) {
 

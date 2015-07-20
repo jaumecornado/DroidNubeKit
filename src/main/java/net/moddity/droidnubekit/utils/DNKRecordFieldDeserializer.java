@@ -49,6 +49,13 @@ public class DNKRecordFieldDeserializer implements JsonDeserializer<Map<String, 
                     Date date = new Date(ts.getTime());
                     recordField = new DNKRecordField<Date>(DNKFieldTypes.TIMESTAMP, date);
                     break;
+                case REFERENCE:
+                    DNKReference singleReference = new DNKReference();
+                    JsonObject value = entry.getValue().getAsJsonObject().get("value").getAsJsonObject();
+                    singleReference.setRecordName(value.get("recordName").getAsString());
+                    singleReference.setAction(value.get("action").getAsString());
+                    recordField = new DNKRecordField<DNKReference>(DNKFieldTypes.REFERENCE, singleReference);
+                    break;
                 case REFERENCE_LIST:
                     JsonArray values = entry.getValue().getAsJsonObject().get("value").getAsJsonArray();
 
