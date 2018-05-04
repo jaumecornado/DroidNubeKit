@@ -25,7 +25,7 @@ From your main activity
 
 The models must extend <b>DNKObject</b> and uses annotations to give knowledge of your schema to the lib.
 
-###Annotations
+### Annotations
 This project uses annotations to know some things about your scheme
 
 	//Defines the recordtype. Must match one on CloudKit dashboard.
